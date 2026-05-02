@@ -84,8 +84,10 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 WORKDIR /var/www/html
 
 # Copiar composer files y instalar dependencias
-COPY composer.json composer.lock* ./
-RUN composer install --no-dev --no-interaction --optimize-autoloader --no-progress
+COPY composer.json ./
+ENV COMPOSER_ALLOW_SUPERUSER=1
+RUN composer update --no-dev --no-interaction --optimize-autoloader --no-progress --no-scripts \
+    && composer dump-autoload --optimize
 
 # Copiar código del CMS
 COPY . .

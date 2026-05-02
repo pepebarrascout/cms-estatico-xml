@@ -11,6 +11,7 @@ on:
 env:
   IMAGE_NAME: pepebarrascout/cms-estatico-xml
   DOCKERHUB_USERNAME: pepebarrascout
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build-and-push:
