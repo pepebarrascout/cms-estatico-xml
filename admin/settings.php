@@ -20,6 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'site_url' => sanitize($_POST['site_url'] ?? ''),
         'articles_per_page' => sanitize($_POST['articles_per_page'] ?? '10'),
         'words_preview' => sanitize($_POST['words_preview'] ?? '50'),
+        'theme' => sanitize($_POST['theme'] ?? 'default'),
         'meta_keywords' => sanitize($_POST['meta_keywords'] ?? ''),
         'meta_author' => sanitize($_POST['meta_author'] ?? ''),
         'smtp_host' => sanitize($_POST['smtp_host'] ?? ''),
@@ -190,6 +191,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['test_email'] ?? '') === '1
                                     <input type="text" id="meta_keywords" name="meta_keywords" class="form-control"
                                            placeholder="blog, tecnología, tutoriales"
                                            value="<?= sanitize($settings['meta_keywords']) ?>">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="theme">Tema del sitio</label>
+                                    <select id="theme" name="theme" class="form-control">
+                                        <?php
+                                        $themes = listThemes();
+                                        $currentTheme = $settings['theme'] ?? 'default';
+                                        foreach ($themes as $t):
+                                        ?>
+                                        <option value="<?= sanitize($t['name']) ?>" <?= $currentTheme === $t['name'] ? 'selected' : '' ?>>
+                                            <?= sanitize($t['label']) ?> - <?= sanitize($t['description']) ?>
+                                        </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <div class="form-hint">El cambio de tema requiere regenerar las páginas estáticas.</div>
                                 </div>
                             </div>
                         </div>

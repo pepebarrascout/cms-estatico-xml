@@ -30,6 +30,7 @@ define('DEFAULT_SETTINGS', [
     'site_url' => '',
     'articles_per_page' => '10',
     'words_preview' => '50',
+    'theme' => 'default',
     'admin_email' => '',
     'smtp_host' => 'smtp.gmail.com',
     'smtp_port' => '587',
@@ -83,4 +84,39 @@ function getSetting(string $key, string $default = ''): string {
         $settings = loadSettings();
     }
     return $settings[$key] ?? $default;
+}
+
+/**
+ * Obtener el directorio del tema activo
+ */
+function getThemeDir(): string {
+    $theme = getSetting('theme', 'default');
+    $themeDir = TEMPLATES_DIR . '/' . $theme;
+    if (is_dir($themeDir)) {
+        return $themeDir;
+    }
+    return TEMPLATES_DIR . '/default';
+}
+
+/**
+ * Listar temas disponibles
+ */
+function listThemes(): array {
+    $themes = [];
+    $dirs = glob(TEMPLATES_DIR . '/*', GLOB_ONLYDIR);
+    foreach ($dirs as $dir) {
+        $name = basename($dir);
+        if ($name === 'partials') continue;
+        $infoFile = $dir . '/theme.json';
+        $info = ['name' => $name, 'label' => $name, 'description' => ''];
+        if (file_exists($infoFile)) {
+            $json = json_decode(file_get_contents($infoFile), true);
+            if ($json) {
+                $info['label'] = $json['label'] ?? $name;
+                $info['description'] = $json['description'] ?? '';
+            }
+        }
+        $themes[] = $info;
+    }
+    return $themes;
 }

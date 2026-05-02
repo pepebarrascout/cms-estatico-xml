@@ -82,7 +82,7 @@ if (strpos($canonicalUrl, '://') === false) {
     <link rel="alternate" type="application/rss+xml" title="<?= htmlspecialchars($siteName, ENT_QUOTES, 'UTF-8') ?> - RSS" href="<?= htmlspecialchars($siteUrl, ENT_QUOTES, 'UTF-8') ?>/feed.xml">
 
     <!-- Stylesheet -->
-    <link rel="stylesheet" href="/assets/css/style.css">
+    <link rel="stylesheet" href="<?= htmlspecialchars($theme_css_url ?? '/templates/default/css/style.css', ENT_QUOTES, 'UTF-8') ?>">
 
     <!-- JSON-LD Structured Data: WebSite -->
     <script type="application/ld+json">

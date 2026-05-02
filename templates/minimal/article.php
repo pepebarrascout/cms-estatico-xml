@@ -1,6 +1,6 @@
 <?php
 /**
- * Single article page template
+ * Single article page template — Minimal Theme
  * Variables:
  *   $article            - array: slug, title, content, author, created, categories, meta_description, ...
  *   $article_categories - array of category detail arrays: name, slug, description
@@ -23,9 +23,9 @@ $articleCreated  = $article['created'] ?? '';
 $articleMetaDesc = $article['meta_description'] ?? '';
 
 /* Build page meta */
-$pageTitle = $articleTitle . ' - ' . $siteName;
+$pageTitle = $articleTitle . ' — ' . $siteName;
 
-/* Meta description: use article meta_description or build from excerpt */
+/* Meta description */
 if (!empty($articleMetaDesc)) {
     $pageDescription = $articleMetaDesc;
 } else {
@@ -56,13 +56,13 @@ if (!empty($articleCreated)) {
     }
 }
 
-/* Reading time (function exists) */
+/* Reading time */
 $readingMinutes = '1 min';
 if (function_exists('readingTime')) {
     $readingMinutes = readingTime($articleContent);
 }
 
-/* HTML content (function exists) */
+/* HTML content */
 $htmlContent = '';
 if (function_exists('markdownToHtml')) {
     $htmlContent = markdownToHtml($articleContent);
@@ -76,11 +76,13 @@ if (!empty($article_categories)) {
     $breadcrumbCat = $article_categories[0];
 }
 
-include TEMPLATES_DIR . '/partials/head.php';
+$themePartialsDir = CMS_ROOT . '/templates/' . ($settings['theme'] ?? 'default') . '/partials';
+
+include $themePartialsDir . '/head.php';
 ?>
 
 <body>
-<?php include TEMPLATES_DIR . '/partials/header.php'; ?>
+<?php include $themePartialsDir . '/header.php'; ?>
 
 <main class="site-main" role="main">
     <div class="container">
@@ -95,46 +97,39 @@ include TEMPLATES_DIR . '/partials/head.php';
         </nav>
 
         <article class="article-single" itemscope itemtype="https://schema.org/Article">
-            <header class="article-single-header">
-                <h1 class="article-single-title" itemprop="headline"><?= htmlspecialchars($articleTitle, ENT_QUOTES, 'UTF-8') ?></h1>
+            <header class="article-header">
+                <h1 class="article-title" itemprop="headline"><?= htmlspecialchars($articleTitle, ENT_QUOTES, 'UTF-8') ?></h1>
 
-                <div class="article-single-meta">
+                <div class="article-meta">
                     <?php if (!empty($articleAuthor)): ?>
-                    <span class="article-single-author" itemprop="author">
-                        <span class="meta-label">Por</span> <?= htmlspecialchars($articleAuthor, ENT_QUOTES, 'UTF-8') ?>
-                    </span>
+                    <span class="article-author" itemprop="author"><?= htmlspecialchars($articleAuthor, ENT_QUOTES, 'UTF-8') ?></span>
                     <?php endif; ?>
 
                     <?php if (!empty($formattedDate)): ?>
-                    <time class="article-single-date" datetime="<?= htmlspecialchars($dateIso, ENT_QUOTES, 'UTF-8') ?>" itemprop="datePublished">
-                        <span class="meta-label">Publicado el</span> <?= $formattedDate ?>
-                    </time>
+                    <time class="article-date" datetime="<?= htmlspecialchars($dateIso, ENT_QUOTES, 'UTF-8') ?>" itemprop="datePublished"><?= $formattedDate ?></time>
                     <?php endif; ?>
 
-                    <span class="article-single-reading-time">
-                        <span class="meta-label">Lectura</span> <?= htmlspecialchars($readingMinutes, ENT_QUOTES, 'UTF-8') ?>
-                    </span>
+                    <span class="article-reading-time"><?= htmlspecialchars($readingMinutes, ENT_QUOTES, 'UTF-8') ?> de lectura</span>
                 </div>
 
                 <?php if (!empty($article_categories)): ?>
-                <div class="article-single-categories">
+                <div class="article-categories">
                     <?php foreach ($article_categories as $cat): ?>
-                    <a href="/categoria/<?= htmlspecialchars($cat['slug'], ENT_QUOTES, 'UTF-8') ?>" class="category-tag"><?= htmlspecialchars($cat['name'], ENT_QUOTES, 'UTF-8') ?></a>
+                    <a href="/categoria/<?= htmlspecialchars($cat['slug'], ENT_QUOTES, 'UTF-8') ?>" class="category-link"><?= htmlspecialchars($cat['name'], ENT_QUOTES, 'UTF-8') ?></a>
                     <?php endforeach; ?>
                 </div>
                 <?php endif; ?>
             </header>
 
-            <div class="article-single-content" itemprop="articleBody">
+            <div class="article-content" itemprop="articleBody">
                 <?= $htmlContent ?>
             </div>
 
-            <footer class="article-single-footer">
-                <a href="/" class="btn-back">&larr; Volver al inicio</a>
+            <footer class="article-footer">
+                <a href="/" class="back-link">&larr; Volver al inicio</a>
             </footer>
         </article>
 
-        <!-- Structured Data: Article -->
         <script type="application/ld+json">
         {
             "@context": "https://schema.org",
@@ -159,6 +154,6 @@ include TEMPLATES_DIR . '/partials/head.php';
     </div>
 </main>
 
-<?php include TEMPLATES_DIR . '/partials/footer.php'; ?>
+<?php include $themePartialsDir . '/footer.php'; ?>
 </body>
 </html>

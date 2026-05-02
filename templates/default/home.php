@@ -22,11 +22,11 @@ $pageDescription = $siteDesc;
 
 $canonicalUrl = ($page > 1) ? '/page/' . $page : '/';
 
-include TEMPLATES_DIR . '/partials/head.php';
+include $theme_partials_dir . '/head.php';
 ?>
 
 <body>
-<?php include TEMPLATES_DIR . '/partials/header.php'; ?>
+<?php include $theme_partials_dir . '/header.php'; ?>
 
 <main class="site-main" role="main">
     <div class="container">
@@ -145,6 +145,6 @@ include TEMPLATES_DIR . '/partials/head.php';
     </div>
 </main>
 
-<?php include TEMPLATES_DIR . '/partials/footer.php'; ?>
+<?php include $theme_partials_dir . '/footer.php'; ?>
 </body>
 </html>

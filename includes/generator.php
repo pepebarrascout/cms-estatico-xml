@@ -219,17 +219,38 @@ function generate404Page(): void {
 }
 
 /**
- * Renderizar plantilla
+ * Renderizar plantilla usando el tema activo
  */
 function renderTemplate(string $name, array $data): string {
-    $templateFile = TEMPLATES_DIR . '/' . $name . '.php';
-    if (!file_exists($templateFile)) {
-        return "<html><body>Error: Template $name not found</body></html>";
+    $settings = $data['settings'] ?? loadSettings();
+    $theme = $settings['theme'] ?? 'default';
+    $themeDir = TEMPLATES_DIR . '/' . $theme;
+
+    // Buscar en el tema activo primero, luego en default
+    $paths = [
+        $themeDir . '/' . $name . '.php',
+        TEMPLATES_DIR . '/default/' . $name . '.php',
+    ];
+
+    $templateFile = null;
+    foreach ($paths as $path) {
+        if (file_exists($path)) {
+            $templateFile = $path;
+            break;
+        }
     }
-    
+
+    if (!$templateFile) {
+        return "<html><body>Error: Template $name not found in theme $theme</body></html>";
+    }
+
+    // Pasar el directorio de partials del tema
+    $data['theme_partials_dir'] = $themeDir . '/partials';
+    $data['theme_css_url'] = '/templates/' . $theme . '/css/style.css';
+
     // Extraer variables para la plantilla
     extract($data, EXTR_SKIP);
-    
+
     ob_start();
     include $templateFile;
     return ob_get_clean();
