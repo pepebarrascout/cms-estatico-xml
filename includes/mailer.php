@@ -7,8 +7,10 @@ use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\SMTP;
 use PHPMailer\PHPMailer\Exception;
 
-// Cargar PHPMailer
-require_once CMS_ROOT . '/vendor/autoload.php';
+// Cargar PHPMailer directamente (sin Composer)
+require_once CMS_ROOT . '/includes/PHPMailer/src/PHPMailer.php';
+require_once CMS_ROOT . '/includes/PHPMailer/src/SMTP.php';
+require_once CMS_ROOT . '/includes/PHPMailer/src/Exception.php';
 
 /**
  * Enviar correo SMTP

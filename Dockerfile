@@ -1,16 +1,3 @@
-# ============================================
-# ETAPA 1: Instalar dependencias con Composer
-# ============================================
-FROM composer:2 AS composer-stage
-
-WORKDIR /app
-COPY composer.json ./
-RUN composer install --no-dev --no-interaction --optimize-autoloader --no-progress --no-scripts \
-    && composer dump-autoload --optimize
-
-# ============================================
-# ETAPA 2: Imagen final PHP + Apache
-# ============================================
 FROM php:8.2-apache
 
 # Etiquetas
@@ -89,9 +76,6 @@ RUN { \
     echo "    MaxKeepAliveRequests 100"; \
     echo "</VirtualHost>"; \
     } > /etc/apache2/sites-available/000-default.conf
-
-# Copiar dependencias de Composer desde la etapa 1
-COPY --from=composer-stage /app/vendor /var/www/html/vendor
 
 # Directorio de trabajo
 WORKDIR /var/www/html
