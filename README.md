@@ -166,7 +166,7 @@ Puerto: `http://localhost:80` (o el que definas en `CMS_PORT`).
 
 ### Usar la imagen de Docker Hub (sin clonar el repo)
 
-Si ya subiste la imagen a Docker Hub, puedes instalarla sin descargar el código fuente:
+Instala la imagen desde Docker Hub, sin descargar el código fuente:
 
 ```bash
 # Crear archivo docker-compose.yml con este contenido:
