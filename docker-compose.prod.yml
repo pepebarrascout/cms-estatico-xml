@@ -1,0 +1,67 @@
+# ==============================================================
+# Docker Compose para Producción - CMS Estático XML
+# ==============================================================
+# Uso: docker-compose -f docker-compose.prod.yml up -d
+#
+# Variables de entorno (crear archivo .env junto a este archivo):
+#   CMS_PORT=80              Puerto expuesto (default: 80)
+#   TZ=America/Guatemala      Zona horaria
+#   PHP_MEMORY_LIMIT=256M     Memoria PHP
+#   PHP_MAX_EXECUTION=60      Tiempo máximo ejecución PHP (segundos)
+#   PHP_UPLOAD_MAX=20M        Tamaño máximo de subida
+#   PHP_POST_MAX=20M          Tamaño máximo POST
+# ==============================================================
+
+services:
+  cms:
+    image: pepebarrascout/cms-estatico-xml:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cms-estatico-xml
+    ports:
+      - "${CMS_PORT:-80}:80"
+    volumes:
+      # Persistencia de datos (artículos, categorías, usuarios, configuración)
+      - cms-data:/var/www/html/data
+      # Páginas estáticas generadas
+      - cms-static:/var/www/html/static
+      # Logs de Apache y PHP
+      - cms-logs:/var/log/apache2
+    environment:
+      # Zona horaria para el servidor y el cron de publicaciones programadas
+      - TZ=${TZ:-America/Guatemala}
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+        reservations:
+          memory: 128M
+          cpus: "0.25"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      - cms-network
+
+volumes:
+  cms-data:
+    driver: local
+  cms-static:
+    driver: local
+  cms-logs:
+    driver: local
+
+networks:
+  cms-network:
+    driver: bridge

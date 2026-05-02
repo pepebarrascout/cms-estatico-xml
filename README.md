@@ -30,12 +30,14 @@ Sistema de gestión de contenidos (CMS) que genera páginas estáticas HTML a pa
   - Acceso a servidor SMTP (Gmail, Yahoo, etc.)
   - Cron o tarea programada
 
-## Instalación con Docker
+---
+
+## Instalación con Docker (desarrollo)
 
 ### 1. Clonar el repositorio
 
 ```bash
-git clone https://github.com/tu-usuario/cms-estatico-xml.git
+git clone https://github.com/pepebarrascout/cms-estatico-xml.git
 cd cms-estatico-xml
 ```
 
@@ -44,6 +46,12 @@ cd cms-estatico-xml
 ```bash
 docker-compose up -d --build
 ```
+
+Este comando:
+- Construye la imagen Docker con Apache + PHP 8.2 + PHPMailer
+- Crea los volúmenes para persistir datos (`cms-data`) y páginas estáticas (`cms-static`)
+- Levanta el contenedor en segundo plano
+- Expone el CMS en el puerto `8080`
 
 ### 3. Acceder al CMS
 
@@ -73,26 +81,163 @@ El CMS estará disponible en `http://localhost:8080`.
 
 > **Nota para Gmail**: Debes generar una [contraseña de aplicación](https://support.google.com/accounts/answer/185833) en tu cuenta de Google.
 
+---
+
+## Configuración YAML (Docker Compose)
+
+El proyecto incluye dos archivos YAML para diferentes entornos:
+
+### Archivos incluidos
+
+| Archivo | Entorno | Descripción |
+|---------|---------|-------------|
+| `docker-compose.yml` | Desarrollo | Configuración básica para desarrollo local |
+| `docker-compose.prod.yml` | Producción | Configuración optimizada con límites de recursos y logs |
+| `.env.example` | Plantilla | Variables de entorno configurables |
+
+### Variables de entorno
+
+Crea un archivo `.env` copiando la plantilla:
+
+```bash
+cp .env.example .env
+```
+
+Variables disponibles:
+
+| Variable | Default | Descripción |
+|----------|---------|-------------|
+| `CMS_PORT` | `8080` | Puerto en el que se expone el CMS |
+| `TZ` | `America/Guatemala` | Zona horaria del servidor (afecta fechas y cron) |
+
+Ejemplo de `.env` personalizado:
+
+```bash
+CMS_PORT=3000
+TZ=Europe/Madrid
+```
+
+### Modo Desarrollo
+
+Usa `docker-compose.yml` directamente:
+
+```bash
+# Construir y levantar
+docker-compose up -d --build
+
+# Ver logs en tiempo real
+docker-compose logs -f
+
+# Detener el contenedor
+docker-compose down
+
+# Reconstruir después de cambios en el código
+docker-compose up -d --build
+```
+
+Puerto: `http://localhost:8080` (o el que definas en `CMS_PORT`).
+
+### Modo Producción
+
+Usa `docker-compose.prod.yml` que incluye:
+
+- **Límites de recursos**: máximo 512MB RAM, 1 CPU
+- **Restart automático**: `always` (se reinicia si falla)
+- **Logs rotativos**: máximo 5 archivos de 10MB cada uno
+- **Red aislada**: bridge network separada
+- **Health check**: verificación de que Apache responde
+- **Volumen de logs**: acceso a logs de Apache fuera del contenedor
+
+```bash
+# Construir y levantar en producción
+docker-compose -f docker-compose.prod.yml up -d --build
+
+# Ver logs
+docker-compose -f docker-compose.prod.yml logs -f
+
+# Detener
+docker-compose -f docker-compose.prod.yml down
+
+# Ver estado del contenedor
+docker-compose -f docker-compose.prod.yml ps
+```
+
+Puerto: `http://localhost:80` (o el que definas en `CMS_PORT`).
+
+### Usar la imagen de Docker Hub (sin clonar el repo)
+
+Si ya subiste la imagen a Docker Hub, puedes instalarla sin descargar el código fuente:
+
+```bash
+# Crear archivo docker-compose.yml con este contenido:
+```
+
+```yaml
+services:
+  cms:
+    image: pepebarrascout/cms-estatico-xml:latest
+    container_name: cms-estatico-xml
+    ports:
+      - "8080:80"
+    volumes:
+      - cms-data:/var/www/html/data
+      - cms-static:/var/www/html/static
+    environment:
+      - TZ=America/Guatemala
+    restart: unless-stopped
+
+volumes:
+  cms-data:
+  cms-static:
+```
+
+```bash
+# Levantar directamente
+docker-compose up -d
+```
+
+### Volúmenes Docker
+
+El CMS usa volúmenes Docker para persistir datos entre reinicios del contenedor:
+
+| Volumen | Ruta interna | Contenido |
+|---------|-------------|-----------|
+| `cms-data` | `/var/www/html/data` | Artículos XML, categorías, usuarios, configuración, índice de búsqueda |
+| `cms-static` | `/var/www/html/static` | Páginas HTML generadas |
+| `cms-logs` (producción) | `/var/log/apache2` | Logs de Apache y PHP |
+
+Para ver los volúmenes creados:
+
+```bash
+docker volume ls | grep cms
+```
+
+Para hacer backup de los datos:
+
+```bash
+# Crear backup
+docker run --rm -v cms-data:/data -v $(pwd):/backup alpine tar czf /backup/cms-data-backup.tar.gz -C /data .
+
+# Restaurar backup
+docker run --rm -v cms-data:/data -v $(pwd):/backup alpine tar xzf /backup/cms-data-backup.tar.gz -C /data
+```
+
+---
+
 ## Instalación Manual (sin Docker)
 
 ### 1. Copiar archivos
 
 Copia todos los archivos al directorio raíz de tu servidor Apache.
 
-### 2. Instalar dependencias
-
-```bash
-composer install
-```
-
-### 3. Permisos
+### 2. Permisos
 
 ```bash
 chmod -R 775 data/ cache/ static/
 chown -R www-data:www-data data/ cache/ static/
 ```
 
-### 4. Configurar Apache
+### 3. Configurar Apache
 
 Asegúrate de que estos módulos estén habilitados:
 
@@ -100,7 +245,7 @@ Asegúrate de que estos módulos estén habilitados:
 a2enmod rewrite headers deflate expires
 ```
 
-### 5. Configurar cron
+### 4. Configurar cron
 
 Agrega esta línea al crontab del servidor:
 
@@ -108,15 +253,57 @@ Agrega esta línea al crontab del servidor:
 * * * * * cd /ruta/al/cms && php cron/publish-scheduled.php
 ```
 
+---
+
+## Comandos Docker Útiles
+
+```bash
+# Construir y levantar
+docker-compose up -d --build
+
+# Ver logs en tiempo real
+docker-compose logs -f
+
+# Ver logs de las últimas 100 líneas
+docker-compose logs --tail 100
+
+# Detener
+docker-compose down
+
+# Detener y eliminar volúmenes (CUIDADO: borra los datos)
+docker-compose down -v
+
+# Reiniciar
+docker-compose restart
+
+# Acceder al contenedor (terminal)
+docker-compose exec cms bash
+
+# Ejecutar un comando dentro del contenedor
+docker-compose exec cms php cron/publish-scheduled.php
+
+# Verificar permisos de directorios
+docker-compose exec cms ls -la /var/www/html/data/
+
+# Ver estado del contenedor
+docker-compose ps
+
+# Ver uso de recursos
+docker stats cms-estatico-xml
+```
+
+---
+
 ## Estructura del Proyecto
 
 ```
 cms-estatico-xml/
 ├── .htaccess                # URLs limpias, gzip, caché, seguridad
-├── Dockerfile               # Imagen Docker con Apache + PHP
-├── docker-compose.yml       # Orquestación del contenedor
+├── Dockerfile               # Imagen Docker con Apache + PHP 8.2
+├── docker-compose.yml       # Orquestación desarrollo
+├── docker-compose.prod.yml  # Orquestación producción
 ├── docker-entrypoint.sh     # Script de inicio del contenedor
-├── composer.json            # Dependencias PHP (PHPMailer)
+├── .env.example             # Variables de entorno
 ├── .gitignore
 ├── README.md
 │
@@ -126,6 +313,7 @@ cms-estatico-xml/
 │   ├── auth.php             # Autenticación OTP
 │   ├── mailer.php           # Envío de correos SMTP
 │   ├── markdown.php         # Parser Markdown a HTML
+│   ├── PHPMailer/           # Librería PHPMailer (incluida)
 │   ├── xml-articles.php     # CRUD de artículos XML
 │   ├── xml-categories.php   # CRUD de categorías XML
 │   ├── xml-users.php        # CRUD de usuarios XML
@@ -156,8 +344,6 @@ cms-estatico-xml/
 │   ├── settings.php         # Configuración del sitio (admin)
 │   ├── generate.php         # Regenerar páginas estáticas
 │   ├── api/                 # Endpoints API
-│   │   ├── create-category.php
-│   │   └── preview.php
 │   └── assets/              # CSS y JS del admin
 │
 ├── templates/               # Plantillas HTML
@@ -167,17 +353,15 @@ cms-estatico-xml/
 │   ├── search.php           # Buscador
 │   ├── 404.php              # Página no encontrada
 │   └── partials/            # Componentes comunes
-│       ├── head.php
-│       ├── header.php
-│       └── footer.php
 │
 ├── assets/                  # Recursos públicos
-│   ├── css/style.css
-│   └── js/
+│   └── css/style.css
 │
 └── cron/
     └── publish-scheduled.php  # Tarea programada
 ```
+
+---
 
 ## URLs del Sistema
 
@@ -212,6 +396,8 @@ cms-estatico-xml/
 | `/admin/usuario/nombre` | Editar usuario (admin) |
 | `/admin/configuracion` | Configuración del sitio (admin) |
 | `/admin/regenerar` | Regenerar páginas estáticas |
+
+---
 
 ## Markdown Soportado
 
@@ -291,12 +477,16 @@ Este es un párrafo.
 Este es otro párrafo separado por una línea en blanco.
 ```
 
+---
+
 ## Roles de Usuario
 
 | Rol | Permisos |
 |-----|----------|
 | **Admin** | Gestión completa: artículos (propios y de todos), categorías, usuarios, configuración, regenerar páginas |
 | **Editor** | Crear y editar sus propios artículos. No puede gestionar usuarios ni configuración |
+
+---
 
 ## Rendimiento
 
@@ -309,6 +499,8 @@ El CMS está diseñado para ser extremadamente rápido:
 - **Keep-Alive**: Conexiones persistentes HTTP
 - **Sin consultas a BD**: No hay overhead de base de datos
 - **Tiempo de carga objetivo**: Menos de 0.5 segundos
+
+---
 
 ## Configuración SMTP
 
@@ -342,30 +534,7 @@ El CMS está diseñado para ser extremadamente rápido:
 | Contraseña | Contraseña de aplicación |
 | Encriptación | `starttls` |
 
-## Comandos Docker Útiles
-
-```bash
-# Construir y levantar
-docker-compose up -d --build
-
-# Ver logs
-docker-compose logs -f
-
-# Detener
-docker-compose down
-
-# Reiniciar
-docker-compose restart
-
-# Acceder al contenedor
-docker-compose exec cms bash
-
-# Verificar permisos
-docker-compose exec cms ls -la data/
-
-# Regenerar páginas estáticas manualmente
-docker-compose exec cms php /var/www/html/cron/publish-scheduled.php
-```
+---
 
 ## Flujo de Trabajo
 
@@ -377,6 +546,8 @@ docker-compose exec cms php /var/www/html/cron/publish-scheduled.php
 6. **Generación**: Al guardar, las páginas estáticas se regeneran automáticamente
 7. **Cron**: Cada minuto se verifican artículos programados para publicar
 8. **Usuarios**: El admin puede crear más usuarios editores desde `/admin/usuarios`
+
+---
 
 ## Seguridad
 
