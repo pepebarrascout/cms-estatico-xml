@@ -1,0 +1,234 @@
+# CMS Estático XML - Apache Configuration
+# URLs limpias sin extensiones, caché, gzip, protección de archivos
+
+# ============================================
+# MOTOR DE REESCRITURA
+# ============================================
+RewriteEngine On
+
+# ============================================
+# HEADERS DE SEGURIDAD
+# ============================================
+<IfModule mod_headers.c>
+    # Prevenir clickjacking
+    Header set X-Frame-Options "SAMEORIGIN"
+    # Prevenir MIME sniffing
+    Header set X-Content-Type-Options "nosniff"
+    # XSS Protection
+    Header set X-XSS-Protection "1; mode=block"
+    # Referrer Policy
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+    # HSTS (solo si se usa HTTPS)
+    # Header set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+</IfModule>
+
+# ============================================
+# COMPRESIÓN GZIP
+# ============================================
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE text/javascript
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/json
+    AddOutputFilterByType DEFLATE application/xml
+    AddOutputFilterByType DEFLATE application/rss+xml
+    AddOutputFilterByType DEFLATE image/svg+xml
+    AddOutputFilterByType DEFLATE font/woff
+    AddOutputFilterByType DEFLATE font/woff2
+    
+    # Excluir navegadores antiguos problemáticos
+    BrowserMatch ^Mozilla/4 gzip-only-text/html
+    BrowserMatch ^Mozilla/4\.0[678] no-gzip
+    BrowserMatch \bMSIE !no-gzip !gzip-only-text/html
+    Header append Vary Accept-Encoding
+</IfModule>
+
+# ============================================
+# CACHE DE NAVEGADOR - ARCHIVOS ESTÁTICOS
+# ============================================
+<IfModule mod_expires.c>
+    ExpiresActive On
+    
+    # HTML - cache corto para permitir actualizaciones rápidas
+    ExpiresByType text/html "access plus 5 minutes"
+    
+    # CSS y JS - cache largo (usar versionado en nombre de archivo)
+    ExpiresByType text/css "access plus 1 year"
+    ExpiresByType application/javascript "access plus 1 year"
+    ExpiresByType text/javascript "access plus 1 year"
+    
+    # Imágenes
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/webp "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+    ExpiresByType image/x-icon "access plus 1 year"
+    
+    # Fuentes
+    ExpiresByType font/woff "access plus 1 year"
+    ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresByType application/font-woff "access plus 1 year"
+    ExpiresByType application/font-woff2 "access plus 1 year"
+    
+    # JSON y XML de datos
+    ExpiresByType application/json "access plus 5 minutes"
+    ExpiresByType application/xml "access plus 5 minutes"
+</IfModule>
+
+# ============================================
+# ETAGS - Deshabilitar para mejor rendimiento con cache
+# ============================================
+<IfModule mod_headers.c>
+    Header unset ETag
+</IfModule>
+FileETag None
+
+# ============================================
+# KEEP-ALIVE - Conexiones persistentes
+# ============================================
+<IfModule mod_headers.c>
+    Header set Connection keep-alive
+</IfModule>
+
+# ============================================
+# PROTEGER ARCHIVOS SENSIBLES
+# ============================================
+# Bloquear acceso directo a archivos XML de datos
+RewriteRule ^data/ - [F,L]
+RewriteRule ^includes/ - [F,L]
+RewriteRule ^cache/ - [F,L]
+
+# Bloquear acceso a archivos ocultos
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Bloquear acceso a archivos de respaldo y editor
+<FilesMatch "~$|\.bak|\.swp|\.tmp|\.sav|\.orig$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Bloquear acceso directo a archivos XML
+<FilesMatch "\.xml$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# ============================================
+# URLs LIMPIAS - SITIO PÚBLICO
+# ============================================
+
+# Página principal → static/home.html
+RewriteCond %{REQUEST_URI} ^/?$
+RewriteCond %{DOCUMENT_ROOT}/static/home.html -f
+RewriteRule ^$ static/home.html [L]
+
+# Paginación portada → /page/2 → static/home-page-2.html
+RewriteCond %{REQUEST_URI} ^/page/([0-9]+)/?$
+RewriteCond %{DOCUMENT_ROOT}/static/home-page-%1.html -f
+RewriteRule ^page/([0-9]+)/?$ static/home-page-$1.html [L]
+
+# Categoría → /categoria/nombre → static/category-nombre.html
+RewriteCond %{REQUEST_URI} ^/categoria/([^/]+)/?$
+RewriteCond %{DOCUMENT_ROOT}/static/category-%1.html -f
+RewriteRule ^categoria/([^/]+)/?$ static/category-$1.html [L]
+
+# Categoría paginada → /categoria/nombre/page/2 → static/category-nombre-page-2.html
+RewriteCond %{REQUEST_URI} ^/categoria/([^/]+)/page/([0-9]+)/?$
+RewriteCond %{DOCUMENT_ROOT}/static/category-%1-page-%2.html -f
+RewriteRule ^categoria/([^/]+)/page/([0-9]+)/?$ static/category-$1-page-$2.html [L]
+
+# Búsqueda → /buscar → static/search.html
+RewriteRule ^buscar/?$ static/search.html [L]
+
+# Artículos → cualquier URL que no sea admin ni category → static/slug.html
+RewriteCond %{REQUEST_URI} !^/admin(/.*)?$
+RewriteCond %{REQUEST_URI} !^/categoria(/.*)?$
+RewriteCond %{REQUEST_URI} !^/page(/.*)?$
+RewriteCond %{REQUEST_URI} !^/buscar(/.*)?$
+RewriteCond %{DOCUMENT_ROOT}/static/%{REQUEST_URI}.html -f
+RewriteRule ^(.+?)/?$ static/$1.html [L]
+
+# ============================================
+# ADMIN - Rutas PHP del panel de administración
+# ============================================
+
+# /admin → /admin/
+RewriteRule ^admin$ admin/ [L,R=301]
+
+# Setup inicial (sin .php en la URL)
+RewriteRule ^admin/configuracion$ admin/settings.php [L]
+RewriteRule ^admin/registrar$ admin/setup.php [L]
+RewriteRule ^admin/login$ admin/login.php [L]
+RewriteRule ^admin/salir$ admin/logout.php [L]
+RewriteRule ^admin/verificar$ admin/verify.php [L]
+RewriteRule ^admin/$ admin/index.php [L]
+RewriteRule ^admin$ admin/index.php [L]
+RewriteRule ^admin/articulos$ admin/articles.php [L]
+RewriteRule ^admin/articulo/([a-z0-9-]+)$ admin/article-edit.php?slug=$1 [L,QSA]
+RewriteRule ^admin/nuevo-articulo$ admin/article-edit.php [L]
+RewriteRule ^admin/categorias$ admin/categories.php [L]
+RewriteRule ^admin/categoria/([a-z0-9-]+)$ admin/category-edit.php?slug=$1 [L,QSA]
+RewriteRule ^admin/nueva-categoria$ admin/category-edit.php [L]
+RewriteRule ^admin/usuarios$ admin/users.php [L]
+RewriteRule ^admin/usuario/([a-z0-9_-]+)$ admin/user-edit.php?username=$1 [L,QSA]
+RewriteRule ^admin/nuevo-usuario$ admin/user-edit.php [L]
+RewriteRule ^admin/regenerar$ admin/generate.php [L]
+RewriteRule ^admin/api/(.+)$ admin/api/$1.php [L]
+
+# ============================================
+# PÁGINA 404
+# ============================================
+ErrorDocument 404 /404
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{DOCUMENT_ROOT}/static/404.html -f
+RewriteRule ^(.*)$ static/404.html [L]
+
+# ============================================
+# TIPOS MIME CORRECTOS
+# ============================================
+<IfModule mod_mime.c>
+    AddType text/html .html
+    AddType text/css .css
+    AddType application/javascript .js
+    AddType application/json .json
+    AddType image/svg+xml .svg .svgz
+    AddType image/webp .webp
+    AddType font/woff .woff
+    AddType font/woff2 .woff2
+    AddType application/xml .xml
+</IfModule>
+
+# ============================================
+# PREVENIR LISTADO DE DIRECTORIOS
+# ============================================
+Options -Indexes
+
+# ============================================
+# PHP - CONFIGURACIÓN DE RENDIMIENTO
+# ============================================
+<IfModule mod_php.c>
+    php_value opcache.enable 1
+    php_value opcache.memory_consumption 128
+    php_value opcache.max_accelerated_files 10000
+    php_value opcache.revalidate_freq 60
+    php_value opcache.fast_shutdown 1
+</IfModule>
+
+# ============================================
+# ENCODING
+# ============================================
+AddDefaultCharset UTF-8
+<IfModule mod_mime.c>
+    AddCharset UTF-8 .html .css .js .json .xml .php
+</IfModule>

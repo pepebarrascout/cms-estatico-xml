@@ -1,0 +1,30 @@
+services:
+  cms:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cms-estatico-xml
+    ports:
+      - "8080:80"
+    volumes:
+      # Persistir datos entre reinicios del contenedor
+      - cms-data:/var/www/html/data
+      - cms-cache:/var/www/html/cache
+      - cms-static:/var/www/html/static
+    environment:
+      - TZ=America/Guatemala
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  cms-data:
+    driver: local
+  cms-cache:
+    driver: local
+  cms-static:
+    driver: local
